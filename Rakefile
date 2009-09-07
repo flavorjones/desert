@@ -46,18 +46,26 @@ rescue LoadError
   puts "Jeweler, or one of its dependencies, is not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
 end
 
+task :work_around_jewelers_annoying_helpfulness do
+  ENV["GIT_DIR"] = nil
+  ENV["GIT_WORK_TREE"] = nil
+  ENV["GIT_INDEX_FILE"] = nil
+end
 
 desc "Install dependencies to run the build. This task uses Git."
-task :install_dependencies do
+task :install_dependencies => :work_around_jewelers_annoying_helpfulness do
   require "lib/desert/supported_rails_versions"
-  system("git clone git://github.com/rails/rails.git /Users/pivotal/workspace/desert/spec/rails_root/vendor/rails_versions/edge")
+  FileUtils.mkdir_p "spec/rails_root/vendor/rails_versions"
+  unless File.exists? "spec/rails_root/vendor/rails_versions/edge"
+    system("git clone git://github.com/rails/rails.git spec/rails_root/vendor/rails_versions/edge")
+  end
   Dir.chdir("spec/rails_root/vendor/rails_versions/edge") do
     begin
       Desert::SUPPORTED_RAILS_VERSIONS.each do |version, data|
-        unless version == 'edge'
-          system("git checkout #{data['git_tag']}")
-          system("cp -R ../edge ../#{version}")
-        end
+        next if version == 'edge'
+        next if File.exists?("../#{version}")
+        system("pwd && git checkout #{data['git_tag']}")
+        system("cp -lR ../edge ../#{version}")
       end
     ensure
       system("git checkout master")
@@ -66,12 +74,13 @@ task :install_dependencies do
 end
 
 desc "Updates the dependencies to run the build. This task uses Git."
-task :update_dependencies do
-  system "cd spec/rails_root/vendor/rails_versions/edge; git pull origin"
+task :update_dependencies => :work_around_jewelers_annoying_helpfulness do
+  Dir.chdir "spec/rails_root/vendor/rails_versions/edge" do
+    system "git pull origin"
+  end
 end
 
 desc "Runs the CI build"
 task :cruise => :install_dependencies do
   run_suite
 end
-

@@ -42,8 +42,6 @@ begin
     s.test_files = Dir.glob('spec/*_spec.rb')
     s.rubyforge_project = "desert"
   end
-rescue LoadError
-  puts "Jeweler, or one of its dependencies, is not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
 end
 
 task :work_around_jewelers_annoying_helpfulness do
